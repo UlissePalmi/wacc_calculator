@@ -16,37 +16,37 @@ from datetime import datetime, timedelta
 
 ALLE_CAPITAL_STRUCTURE = {
     # 2019
-    '2019-Q1': {'total_debt': 1450, 'total_equity': 1180, 'tax_rate': 0.16},
-    '2019-Q2': {'total_debt': 1445, 'total_equity': 1220, 'tax_rate': 0.16},
-    '2019-Q3': {'total_debt': 1440, 'total_equity': 1250, 'tax_rate': 0.16},
-    '2019-Q4': {'total_debt': 1435, 'total_equity': 1280, 'tax_rate': 0.154},
+    '2019-Q1': {'total_debt': 1450, 'tax_rate': 0.16},
+    '2019-Q2': {'total_debt': 1445, 'tax_rate': 0.16},
+    '2019-Q3': {'total_debt': 1440, 'tax_rate': 0.16},
+    '2019-Q4': {'total_debt': 1435, 'tax_rate': 0.154},
     # 2020
-    '2020-Q1': {'total_debt': 1430, 'total_equity': 1150, 'tax_rate': 0.15},
-    '2020-Q2': {'total_debt': 1425, 'total_equity': 1100, 'tax_rate': 0.15},
-    '2020-Q3': {'total_debt': 1420, 'total_equity': 1180, 'tax_rate': 0.15},
-    '2020-Q4': {'total_debt': 1415, 'total_equity': 1250, 'tax_rate': 0.148},
+    '2020-Q1': {'total_debt': 1430, 'tax_rate': 0.15},
+    '2020-Q2': {'total_debt': 1425, 'tax_rate': 0.15},
+    '2020-Q3': {'total_debt': 1420, 'tax_rate': 0.15},
+    '2020-Q4': {'total_debt': 1415, 'tax_rate': 0.148},
     # 2021
-    '2021-Q1': {'total_debt': 1410, 'total_equity': 1300, 'tax_rate': 0.15},
-    '2021-Q2': {'total_debt': 1400, 'total_equity': 1350, 'tax_rate': 0.15},
-    '2021-Q3': {'total_debt': 1395, 'total_equity': 1380, 'tax_rate': 0.15},
-    '2021-Q4': {'total_debt': 1390, 'total_equity': 1420, 'tax_rate': 0.124},
+    '2021-Q1': {'total_debt': 1410, 'tax_rate': 0.15},
+    '2021-Q2': {'total_debt': 1400, 'tax_rate': 0.15},
+    '2021-Q3': {'total_debt': 1395, 'tax_rate': 0.15},
+    '2021-Q4': {'total_debt': 1390, 'tax_rate': 0.124},
     # 2022 - Stanley Access Technologies acquired in July
-    '2022-Q1': {'total_debt': 1385, 'total_equity': 1380, 'tax_rate': 0.13},
-    '2022-Q2': {'total_debt': 1380, 'total_equity': 1350, 'tax_rate': 0.13},
-    '2022-Q3': {'total_debt': 2100, 'total_equity': 1320, 'tax_rate': 0.13},  # Post-Stanley
-    '2022-Q4': {'total_debt': 2050, 'total_equity': 1380, 'tax_rate': 0.122},
+    '2022-Q1': {'total_debt': 1385, 'tax_rate': 0.13},
+    '2022-Q2': {'total_debt': 1380, 'tax_rate': 0.13},
+    '2022-Q3': {'total_debt': 2100, 'tax_rate': 0.13},  # Post-Stanley
+    '2022-Q4': {'total_debt': 2050, 'tax_rate': 0.122},
     # 2023
-    '2023-Q1': {'total_debt': 2020, 'total_equity': 1400, 'tax_rate': 0.14},
-    '2023-Q2': {'total_debt': 1995, 'total_equity': 1420, 'tax_rate': 0.14},
-    '2023-Q3': {'total_debt': 1980, 'total_equity': 1450, 'tax_rate': 0.14},
-    '2023-Q4': {'total_debt': 1965, 'total_equity': 1480, 'tax_rate': 0.138},
+    '2023-Q1': {'total_debt': 2020, 'tax_rate': 0.14},
+    '2023-Q2': {'total_debt': 1995, 'tax_rate': 0.14},
+    '2023-Q3': {'total_debt': 1980, 'tax_rate': 0.14},
+    '2023-Q4': {'total_debt': 1965, 'tax_rate': 0.138},
     # 2024
-    '2024-Q1': {'total_debt': 1990, 'total_equity': 1500, 'tax_rate': 0.145},
-    '2024-Q2': {'total_debt': 2000, 'total_equity': 1520, 'tax_rate': 0.145},
-    '2024-Q3': {'total_debt': 1995, 'total_equity': 1540, 'tax_rate': 0.145},
-    '2024-Q4': {'total_debt': 1999.5, 'total_equity': 1500.7, 'tax_rate': 0.145},
+    '2024-Q1': {'total_debt': 1990, 'tax_rate': 0.145},
+    '2024-Q2': {'total_debt': 2000, 'tax_rate': 0.145},
+    '2024-Q3': {'total_debt': 1995, 'tax_rate': 0.145},
+    '2024-Q4': {'total_debt': 1999.5, 'tax_rate': 0.145},
     # 2025 (estimated based on recent filings)
-    '2025-Q1': {'total_debt': 2100, 'total_equity': 1550, 'tax_rate': 0.145},
+    '2025-Q1': {'total_debt': 2100, 'tax_rate': 0.145},
 }
 
 def get_capital_structure_for_date(date: pd.Timestamp) -> dict:
