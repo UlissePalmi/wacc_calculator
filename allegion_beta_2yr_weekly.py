@@ -77,28 +77,20 @@ ALLEGION_DATA['interest_coverage'] = ALLEGION_DATA['operating_income'] / ALLEGIO
 # ============================================================================
 
 PEER_COMPANIES = {
-    'FBIN': {
-        'name': 'Fortune Brands Innovations',
-        'description': 'Direct competitor in residential locks (per ALLE 10-K)',
-        'total_debt': 2850.0,
-        'total_equity': 3200.0,
-        'effective_tax_rate': 0.24,
-        'include': True,
-    },
-    'MAS': {
-        'name': 'Masco Corporation',
-        'description': 'Building products, similar end markets',
-        'total_debt': 3100.0,
-        'total_equity': 1850.0,
-        'effective_tax_rate': 0.25,
-        'include': True,
-    },
-    'SWK': {
-        'name': 'Stanley Black & Decker',
-        'description': 'Tools & security, licenses brand to Allegion',
-        'total_debt': 7400.0,
-        'total_equity': 9800.0,
+    'ASAZY': {
+        'name': 'ASSA ABLOY (ADR)',
+        'description': '#1 global lock company, closest competitor',
+        'total_debt': 4200.0,  # USD millions
+        'total_equity': 12500.0,
         'effective_tax_rate': 0.22,
+        'include': True,
+    },
+    'DOKA': {
+        'name': 'dormakaba Holding AG',
+        'description': '#3 global lock company, direct competitor',
+        'total_debt': 900.0,  # CHF 803.3M (322.9 current + 480.4 non-current) → ~$900M USD
+        'total_equity': 450.0,  # CHF 401.3M → ~$450M USD
+        'effective_tax_rate': 0.26,  # 25.8% per annual report
         'include': True,
     },
     'JCI': {
@@ -109,28 +101,12 @@ PEER_COMPANIES = {
         'effective_tax_rate': 0.15,
         'include': True,
     },
-    'CARR': {
-        'name': 'Carrier Global',
-        'description': 'Building products, HVAC and security',
-        'total_debt': 11200.0,
-        'total_equity': 14800.0,
-        'effective_tax_rate': 0.22,
-        'include': True,
-    },
-    'REZI': {
-        'name': 'Resideo Technologies',
-        'description': 'Security and smart home products',
-        'total_debt': 2950.0,
-        'total_equity': 1450.0,
-        'effective_tax_rate': 0.26,
-        'include': True,
-    },
-    'ASAZY': {
-        'name': 'ASSA ABLOY (ADR)',
-        'description': '#1 global lock company, closest competitor',
-        'total_debt': 4200.0,
-        'total_equity': 12500.0,
-        'effective_tax_rate': 0.22,
+    'FBIN': {
+        'name': 'Fortune Brands Innovations',
+        'description': 'Direct competitor in residential locks (per ALLE 10-K)',
+        'total_debt': 2850.0,
+        'total_equity': 3200.0,
+        'effective_tax_rate': 0.24,
         'include': True,
     },
 }
