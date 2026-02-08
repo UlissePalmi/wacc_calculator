@@ -3,12 +3,12 @@ import yfinance as yf
 import pandas as pd
 
 # --- Usage ---
-symbol = "ALLE"
+ticker = input("Enter ticker symbol: ").upper()
 start_date = "2019-01-01"
 
-wacc_df = marketCap.get_wacc_inputs(symbol, start_date, marketCap.ALLE_CAPITAL_STRUCTURE)
+wacc_df = marketCap.get_wacc_inputs(ticker, start_date, marketCap.ALLE_CAPITAL_STRUCTURE)
 
-print(f"--- Final WACC Inputs for {symbol} ---")
+print(f"--- Final WACC Inputs for {ticker} ---")
 pd.options.display.float_format = '{:,.2f}'.format
 print(wacc_df.head(10))  # Should show 2019 data filled
 print(wacc_df.tail(10))  # Should show 2024/2025 data filled
