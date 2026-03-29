@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 # =============================================================================
 # ALLEGION HISTORICAL CAPITAL STRUCTURE (from 10-K/10-Q filings)
 # =============================================================================
-# Format: 'YYYY-QX': {'total_debt': $M, 'total_equity': $M, 'tax_rate': %}
+# Format: 'YYYY-QX': {'total_debt': $M, 'tax_rate': %}  — equity uses live market cap
 
 ALLE_CAPITAL_STRUCTURE = {
     # 2019
@@ -93,6 +93,28 @@ def relever_beta(unlevered_beta: float, debt: float, equity: float, tax_rate: fl
     return levered
 
 
+def get_market_cap_series(ticker: str, start_date: datetime) -> pd.Series:
+    """
+    Fetch daily market cap (in $M) for a ticker using yfinance.
+    Returns a Series indexed by date.
+    """
+    t = yf.Ticker(ticker)
+    shares = t.get_shares_full(start=start_date.strftime('%Y-%m-%d'))
+    prices = t.history(start=start_date.strftime('%Y-%m-%d'))
+
+    if shares is None or shares.empty or prices.empty:
+        raise ValueError(f"Could not fetch market cap data for {ticker}")
+
+    shares.index = pd.to_datetime(shares.index).normalize().tz_localize(None)
+    prices.index = pd.to_datetime(prices.index).normalize().tz_localize(None)
+
+    shares = shares.groupby(shares.index).last()
+    aligned_shares = shares.reindex(prices.index, method='ffill')
+
+    market_cap = (aligned_shares * prices['Close']) / 1_000_000  # in $M
+    return market_cap.rename('Market_Cap_M')
+
+
 def calculate_rolling_beta_with_structure(
     stock_ticker: str = "ALLE",
     market_ticker: str = "SPY",
@@ -101,61 +123,70 @@ def calculate_rolling_beta_with_structure(
 ):
     """
     Calculate rolling beta WITH capital structure adjustment.
+    Uses market value of equity (market cap) for D/E ratio.
     Returns both levered and unlevered beta over time.
     """
-    
+
     # Download data
     end_date = datetime.now()
     start_date = end_date - timedelta(days=total_history_years * 365)
-    print(f"start_date: {start_date}")
     print(f"Downloading {stock_ticker} and {market_ticker} data...")
     print(f"Period: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
-    
+
     stock = yf.download(stock_ticker, start=start_date, end=end_date, interval='1wk', progress=False, auto_adjust=True)
     market = yf.download(market_ticker, start=start_date, end=end_date, interval='1wk', progress=False, auto_adjust=True)
-    
+
+    # Fetch market cap (market value of equity) for D/E ratio
+    print(f"Fetching market cap for {stock_ticker}...")
+    market_cap_series = get_market_cap_series(stock_ticker, start_date)
+
     # Handle column formats
     stock_close = stock['Close'].squeeze() if 'Close' in stock.columns else stock['Close']
     market_close = market['Close'].squeeze() if 'Close' in market.columns else market['Close']
-    
+
     stock_returns = stock_close.pct_change().dropna()
     market_returns = market_close.pct_change().dropna()
-    
+
     # Align the series
     aligned = pd.DataFrame({
         'stock': stock_returns,
         'market': market_returns
     }).dropna()
-    print(aligned)
     print(f"Total weekly observations: {len(aligned)}")
     print(f"Date range: {aligned.index[0].strftime('%Y-%m-%d')} to {aligned.index[-1].strftime('%Y-%m-%d')}")
-    
+
     # Calculate rolling metrics
     results_list = []
-    
+
     for i in range(rolling_window_weeks, len(aligned)):
         window = aligned.iloc[i - rolling_window_weeks:i]
         current_date = aligned.index[i]
-        
+
         # Calculate levered beta
         cov = window['stock'].cov(window['market'])
         var = window['market'].var()
         levered_beta = cov / var
-        
+
         # Calculate R-squared
         correlation = window['stock'].corr(window['market'])
         r_squared = correlation ** 2
-        
-        # Get capital structure for this date
+
+        # Get debt and tax rate for this date
         cap_structure = get_capital_structure_for_date(current_date)
         debt = cap_structure['total_debt']
-        equity = cap_structure['total_equity']
         tax_rate = cap_structure['tax_rate']
-        de_ratio = debt / equity
-        
+
+        # Get market value of equity (market cap) for this date
+        # Find closest available market cap date
+        current_date_norm = current_date.normalize().tz_localize(None) if current_date.tzinfo else current_date.normalize()
+        mc_idx = market_cap_series.index.get_indexer([current_date_norm], method='nearest')[0]
+        equity = float(market_cap_series.iloc[mc_idx])
+
+        de_ratio = debt / equity if equity > 0 else 0
+
         # Calculate unlevered beta
         unlevered_beta = unlever_beta(levered_beta, debt, equity, tax_rate)
-        
+
         results_list.append({
             'Date': current_date,
             'Levered_Beta': levered_beta,
@@ -164,9 +195,9 @@ def calculate_rolling_beta_with_structure(
             'D_E_Ratio': de_ratio,
             'Tax_Rate': tax_rate,
             'Total_Debt': debt,
-            'Total_Equity': equity
+            'Market_Cap': equity
         })
-    
+
     results = pd.DataFrame(results_list).set_index('Date')
     
     return results, aligned
@@ -222,7 +253,7 @@ def print_comprehensive_summary(results: pd.DataFrame, peer_df: pd.DataFrame, ti
     alle_relevered = relever_beta(
         peer_median_unlevered,
         current['Total_Debt'],
-        current['Total_Equity'],
+        current['Market_Cap'],
         current['Tax_Rate']
     )
     
@@ -294,7 +325,7 @@ def plot_levered_beta(results: pd.DataFrame, ticker: str = "ALLE"):
     
     ax.set_ylabel('Levered Beta', fontsize=12)
     ax.set_xlabel('Date', fontsize=12)
-    ax.set_title(f'{ticker} Levered Beta (Asset Beta)', fontsize=14, fontweight='bold')
+    ax.set_title(f'{ticker} Rolling Beta vs SPY  (104-Week Rolling)', fontsize=14, fontweight='bold')
     ax.legend(loc='upper right')
     ax.grid(True, alpha=0.3)
     
@@ -332,8 +363,8 @@ def plot_rolling_volatility(df):
 
     # 3. Create the Plot
     plt.figure(figsize=(12, 6))
-    plt.plot(rolling_std_stock.index, rolling_std_stock, label='Stock 2-Year Rolling Std Dev', color='blue')
-    plt.plot(rolling_std_market.index, rolling_std_market, label='Market 2-Year Rolling Std Dev', color='red', linestyle='--')
+    plt.plot(rolling_std_stock.index, rolling_std_stock, label='Stock 2-Year Rolling Std Dev', color='#F86700')
+    plt.plot(rolling_std_market.index, rolling_std_market, label='Market 2-Year Rolling Std Dev', color='#333F48', linestyle='--')
     
     # Formatting
     plt.title('Stock vs Market Rolling Standard Deviation (2-Year Window)', fontsize=14)
@@ -367,7 +398,7 @@ def plot_relative_volatility(df):
 
     # 4. Create the Plot
     plt.figure(figsize=(12, 6))
-    plt.plot(relative_volatility.index, relative_volatility, label='Relative Volatility (Stock / Market)', color='purple')
+    plt.plot(relative_volatility.index, relative_volatility, label='Relative Volatility (Stock / Market)', color='#F86700')
     
     # Formatting
     plt.title('Relative Volatility (Stock Std Dev / Market Std Dev)', fontsize=14)
@@ -378,6 +409,60 @@ def plot_relative_volatility(df):
     
     # Show the plot
     plt.show()
+
+def plot_beta_decomposition(df, window_size=104):
+    """
+    Calculates rolling beta as β = ρ(stock, market) × (σ_stock / σ_market)
+    and plots it as a single chart.
+    """
+    if not isinstance(df.index, pd.DatetimeIndex):
+        df.index = pd.to_datetime(df.index)
+
+    rolling_corr = df['stock'].rolling(window_size).corr(df['market']).dropna()
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    ax.plot(rolling_corr.index, rolling_corr, color='#F86700', linewidth=1.5, label='Rolling Correlation')
+    ax.axhline(1.0, color='gray', linestyle=':', alpha=0.5, label='ρ = 1.0')
+
+    ax.set_title(f'ALLE vs SPY Rolling Correlation  ({window_size}-Week Rolling)', fontsize=13, fontweight='bold')
+    ax.set_ylabel('Correlation (ρ)', fontsize=11)
+    ax.set_xlabel('Date', fontsize=11)
+    ax.legend(loc='upper right')
+    ax.grid(True, linestyle='--', alpha=0.4)
+
+    plt.tight_layout()
+    plt.savefig('alle_beta_decomposition.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_beta_monthly(df, window_size=60):
+    """
+    Calculates and plots rolling 5-year monthly beta (60-month window).
+    """
+    if not isinstance(df.index, pd.DatetimeIndex):
+        df.index = pd.to_datetime(df.index)
+
+    rolling_corr = df['stock'].rolling(window_size).corr(df['market'])
+    rolling_std_stock = df['stock'].rolling(window_size).std()
+    rolling_std_market = df['market'].rolling(window_size).std()
+    beta = (rolling_corr * rolling_std_stock / rolling_std_market).dropna()
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    ax.plot(beta.index, beta, color='#F86700', linewidth=1.5, label='Rolling Beta')
+    ax.axhline(1.0, color='#333F48', linestyle=':', alpha=0.5, label='β = 1.0')
+
+    ax.set_title(f'ALLE Rolling Beta vs SPY  ({window_size}-Month Rolling)', fontsize=13, fontweight='bold')
+    ax.set_ylabel('Beta', fontsize=11)
+    ax.set_xlabel('Date', fontsize=11)
+    ax.legend(loc='upper right')
+    ax.grid(True, linestyle='--', alpha=0.4)
+
+    plt.tight_layout()
+    plt.savefig('alle_beta_monthly.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
 
 if __name__ == "__main__":
     
@@ -404,3 +489,14 @@ if __name__ == "__main__":
     plot_rolling_volatility(raw_returns)
 
     plot_relative_volatility(raw_returns)
+
+    plot_beta_decomposition(raw_returns, window_size=104)
+
+    # 5-year monthly beta
+    print("\nFetching monthly data for 5-year rolling beta...")
+    stock_m = yf.download("ALLE", period="10y", interval="1mo", progress=False, auto_adjust=True)
+    market_m = yf.download("SPY", period="10y", interval="1mo", progress=False, auto_adjust=True)
+    stock_ret_m = stock_m['Close'].squeeze().pct_change().dropna()
+    market_ret_m = market_m['Close'].squeeze().pct_change().dropna()
+    monthly = pd.DataFrame({'stock': stock_ret_m, 'market': market_ret_m}).dropna()
+    plot_beta_monthly(monthly, window_size=60)
